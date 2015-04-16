@@ -1,4 +1,5 @@
 from django.db.models import CharField, IntegerField, TextField
+from django.utils import six
 
 from django_mysql.shims.expressions import Func, Value
 
@@ -115,3 +116,16 @@ class SHA2(Func):
                 .format(",".join(str(x) for x in self.hash_lens))
             )
         super(SHA2, self).__init__(expression, Value(hash_len))
+
+
+# Field functions
+
+class ColumnCreate(Func):
+    function = 'COLUMN_CREATE'
+
+    def __init__(self, value_map, **extra):
+        expressions = []
+        for key, value in six.iteritems(value_map):
+            expressions.append(Value(key))
+            expressions.append(Value(value))
+        super(ColumnCreate, self).__init__(*expressions, **extra)

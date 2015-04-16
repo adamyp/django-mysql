@@ -4,7 +4,8 @@ from django.db.models import (
 )
 
 from django_mysql.models import (
-    ListCharField, ListTextField, Model, SetCharField, SetTextField
+    DynamicField, ListCharField, ListTextField, Model, SetCharField,
+    SetTextField
 )
 
 
@@ -67,6 +68,10 @@ class BigIntSetModel(Model):
 
 class BigIntListModel(Model):
     field = ListTextField(base_field=IntegerField())
+
+
+class DynamicModel(Model):
+    field = DynamicField()
 
 
 class Author(Model):
