@@ -23,6 +23,9 @@ class DynamicField(six.with_metaclass(SubfieldBase, Field)):
         return value
 
     def get_prep_value(self, value):
+        if isinstance(value, ColumnCreate):
+            return
+
         if value is None:
             return value
         if not value:

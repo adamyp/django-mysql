@@ -71,7 +71,7 @@ class BigIntListModel(Model):
 
 
 class DynamicModel(Model):
-    field = DynamicField()
+    attrs = DynamicField()
 
 
 class Author(Model):

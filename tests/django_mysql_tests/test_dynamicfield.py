@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from unittest import skipIf, SkipTest
+from unittest import expectedFailure, skipIf, SkipTest
 
 import django
 from django.db import connection
@@ -20,28 +20,37 @@ class TestSaveLoad(TestCase):
             raise SkipTest("Dynamic Columns require MariaDB 10.0.1+")
         super(TestSaveLoad, cls).setUpClass()
 
-    def test_easy_key_value(self):
+    def test_simple_key_value(self):
         self.assertEqual(list(DynamicModel.objects.all()), [])
         s = DynamicModel.objects.create()
-        self.assertEqual(s.field, {})
+        self.assertEqual(s.attrs, {})
         s = DynamicModel.objects.get()
 
-        self.assertEqual(s.field, {})
+        self.assertEqual(s.attrs, {})
 
-        s.field['key'] = 'value!'
-        s.field['2key'] = 23
+        s.attrs['key'] = 'value!'
+        s.attrs['2key'] = 23
         s.save()
 
         s = DynamicModel.objects.get()
-        self.assertEqual(s.field, {'key': 'value!', '2key': 23})
+        self.assertEqual(s.attrs, {'key': 'value!', '2key': 23})
 
-        del s.field['key']
+        del s.attrs['key']
         s.save()
 
         s = DynamicModel.objects.get()
-        self.assertEqual(s.field, {'2key': 23})
+        self.assertEqual(s.attrs, {'2key': 23})
 
-        del s.field['2key']
+        del s.attrs['2key']
         s.save()
         s = DynamicModel.objects.get()
-        self.assertEqual(s.field, {})
+        self.assertEqual(s.attrs, {})
+
+    @expectedFailure
+    def test_create(self):
+        # Broken until https://code.djangoproject.com/ticket/24509 is fixed
+        DynamicModel.objects.create(attrs={
+            'a': 'value'
+        })
+        s = DynamicModel.objects.get()
+        self.assertEqual(s.attrs['a'], 'value')
