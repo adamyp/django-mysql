@@ -11,6 +11,71 @@ More ways to store data! The following can be imported from
 .. currentmodule:: django_mysql.models
 
 
+.. _size-fields:
+
+------------------------
+Differently Sized Fields
+------------------------
+
+Django's :class:`~django.db.models.TextField` and
+:class:`~django.db.models.BinaryField` fields are fixed at the MySQL level to
+the maximum variants of the ``BLOB`` and ``TEXT`` types. This is fine for most
+applications, however, if you are working with a legacy database, or you're
+really squeezed for space, then being able to use the other variants can help.
+
+The following field classes are simple subclasses that let you use the other
+varieties of ``BLOB`` and ``TEXT`` with the ORM.
+
+For example if you were looking to save space with text fields, you might
+consider ``BasicTextField``. A ``TextField`` uses ``LONGTEXT``, which requires
+``4 + L`` bytes to store a value, whilst a ``BasicTextField`` uses ``TEXT``
+which requires only ``2 + L`` bytes (though it has a smaller maximum size).
+Saving 2 bytes per row on a billion row table saves 2GiB of disk space, and
+moreover means more rows can be cached in memory.
+
+Obviously these aren't for every application, and are relatively easy to
+create, but having a single unmoving place to import them is useful.
+
+Docs:
+`MySQL <https://dev.mysql.com/doc/refman/5.5/en/storage-requirements.html>`_ /
+`MariaDB <https://mariadb.com/kb/en/mariadb/data-type-storage-requirements/>`_.
+
+.. class:: TinyTextField
+
+    Like :class:`~django.db.models.TextField` but uses the ``TINYTEXT`` data
+    type, which has a maximum length of 255 bytes.
+
+
+.. class:: BasicTextField
+
+    Like :class:`~django.db.models.TextField` but uses the ``TEXT`` data type,
+    which has a maximum length of 65,535 bytes.
+
+
+.. class:: MediumTextField
+
+    Like :class:`~django.db.models.TextField` but uses the ``MEDIUMTEXT`` data
+    type, which has a maximum length of 16,777,215 bytes.
+
+
+.. class:: TinyBinaryField
+
+    Like :class:`~django.db.models.BinaryField` but uses the ``TINYBLOB`` data
+    type, which has a maximum length of 255 bytes.
+
+
+.. class:: BasicBinaryField
+
+    Like :class:`~django.db.models.BinaryField` but uses the ``BLOB`` data
+    type, which has a maximum length of 65,535 bytes.
+
+
+.. class:: MediumBinaryField
+
+    Like :class:`~django.db.models.BinaryField` but uses the ``MEDIUMBLOB``
+    data type, which has a maximum length of 16,777,215 bytes.
+
+
 .. _list-fields:
 
 -----------
