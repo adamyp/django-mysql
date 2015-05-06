@@ -17,11 +17,11 @@ class SizeFieldTests(TestCase):
     @atomic
     def test_tiny_binary_max_length(self):
         # Okay
-        m = SizeFieldModel(tiny_binary=six.binary_type('a') * (2**8 - 1))
+        m = SizeFieldModel(tiny_binary=six.binary_type(1) * (2**8 - 1))
         m.save()
 
         # Bad - Data too long
-        m = SizeFieldModel(tiny_binary=six.binary_type('a') * (2**8))
+        m = SizeFieldModel(tiny_binary=six.binary_type(1) * (2**8))
         with self.assertRaises(DataError) as cm:
             m.save()
         self.assertEqual(cm.exception.args[0], 1406)
