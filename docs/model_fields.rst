@@ -19,14 +19,14 @@ Differently Sized Fields
 
 Django's :class:`~django.db.models.TextField` and
 :class:`~django.db.models.BinaryField` fields are fixed at the MySQL level to
-the maximum variants of the ``BLOB`` and ``TEXT`` types. This is fine for most
-applications, however, if you are working with a legacy database, or you're
-really squeezed for space, then being able to use the other variants can help.
+the maximally sized variants of the ``BLOB`` and ``TEXT`` types. This is fine
+for most applications, however, if you are working with a legacy database, or
+you're really squeezed for space, the other sizes can be useful.
 
 The following field classes are simple subclasses that let you use the other
-varieties of ``BLOB`` and ``TEXT`` with the ORM.
+varieties of ``BLOB`` and ``TEXT`` with Django.
 
-For example if you were looking to save space with text fields, you might
+For example, if you were looking to save space with text fields, you might
 consider ``BasicTextField``. A ``TextField`` uses ``LONGTEXT``, which requires
 ``4 + L`` bytes to store a value, whilst a ``BasicTextField`` uses ``TEXT``
 which requires only ``2 + L`` bytes (though it has a smaller maximum size).
@@ -34,7 +34,8 @@ Saving 2 bytes per row on a billion row table saves 2GiB of disk space, and
 moreover means more rows can be cached in memory.
 
 Obviously these aren't for every application, and are relatively easy to
-create, but having a single unmoving place to import them is useful.
+create, but they are provided here so there is a single place to import them
+from.
 
 Docs:
 `MySQL <https://dev.mysql.com/doc/refman/5.5/en/storage-requirements.html>`_ /
