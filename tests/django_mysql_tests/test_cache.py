@@ -6,6 +6,7 @@ import time
 import warnings
 from decimal import Decimal
 
+import ddt
 from django.core.cache import CacheKeyWarning, cache, caches
 from django.core.management import CommandError, call_command
 from django.db import OperationalError, connection, transaction
@@ -53,13 +54,33 @@ def custom_key_func(key, key_prefix, version):
     return 'CUSTOM-' + '-'.join([key_prefix, str(version), key])
 
 
+def reverse_custom_key_func(full_key):
+    "The reverse of custom_key_func"
+    # Remove CUSTOM-
+    full_key = full_key[len('CUSTOM-'):]
+
+    first_dash = full_key.find('-')
+    key_prefix = full_key[:first_dash]
+
+    second_dash = full_key.find('-', first_dash + 1)
+    version = int(full_key[first_dash + 1:second_dash])
+
+    key = full_key[second_dash + 1:]
+
+    return key, key_prefix, version
+
+
 _caches_setting_base = {
     'default': {},
     'prefix': {'KEY_PREFIX': 'cacheprefix{}'.format(os.getpid())},
     'v2': {'VERSION': 2},
-    'custom_key': {'KEY_FUNCTION': custom_key_func},
+    'custom_key': {'KEY_FUNCTION': custom_key_func,
+                   'REVERSE_KEY_FUNCTION': reverse_custom_key_func},
     'custom_key2': {
-        'KEY_FUNCTION': 'django_mysql_tests.test_cache.custom_key_func'
+        'KEY_FUNCTION':
+            'django_mysql_tests.test_cache.custom_key_func',
+        'REVERSE_KEY_FUNCTION':
+            'django_mysql_tests.test_cache.reverse_custom_key_func',
     },
     'cull': {'OPTIONS': {'CULL_PROBABILITY': 1,
                          'MAX_ENTRIES': 30}},
@@ -101,6 +122,7 @@ def override_cache_settings(BACKEND='django_mysql.cache.MySQLCache',
 
 
 @override_cache_settings()
+@ddt.ddt
 class MySQLCacheTests(TransactionTestCase):
 
     def setUp(self):
@@ -1038,6 +1060,56 @@ class MySQLCacheTests(TransactionTestCase):
                    WHERE value_type = 'I'""" % self.table_name)
             n = cursor.fetchone()[0]
             self.assertEqual(n, 0)
+
+    def test_bad_key_prefix_for_reverse_function(self):
+        override = override_cache_settings(KEY_PREFIX='a:bad:prefix')
+        raises = self.assertRaises(ValueError)
+        with override, raises as cm:
+            caches['default']
+        self.assertTrue(
+            str(cm.exception).startswith("Cannot use the default KEY_FUNCTION")
+        )
+
+    @ddt.data('default', 'prefix', 'custom_key', 'custom_key2')
+    def test_keys_with_prefix(self, cache_name):
+        cache = caches[cache_name]
+        self.assertEqual(cache.keys_with_prefix(''), set())
+        self.assertEqual(cache.keys_with_prefix('K'), set())
+
+        cache.set('A2', True)
+        cache.set('K1', True)
+        cache.set('K23', True, 1000)
+        cache.set('K99', True, 0.1)
+        time.sleep(0.2)
+        self.assertEqual(cache.keys_with_prefix(''), {'A2', 'K1', 'K23'})
+        self.assertEqual(cache.keys_with_prefix('K'), {'K1', 'K23'})
+
+        cache.delete('K1')
+        self.assertEqual(cache.keys_with_prefix('K'), {'K23'})
+
+        cache.clear()
+        self.assertEqual(cache.keys_with_prefix(''), set())
+        self.assertEqual(cache.keys_with_prefix('K'), set())
+
+    @ddt.data('default', 'prefix', 'custom_key', 'custom_key2')
+    def test_keys_with_prefix_version(self, cache_name):
+        cache = caches[cache_name]
+
+        cache.set('V12', True, version=1)
+        cache.set('V12', True, version=2)
+        cache.set('V2', True, version=2)
+        cache.set('V3', True, version=3)
+        self.assertEqual(cache.keys_with_prefix('V', version=1), {'V12'})
+        self.assertEqual(cache.keys_with_prefix('V', version=2), {'V12', 'V2'})
+        self.assertEqual(cache.keys_with_prefix('V', version=3), {'V3'})
+
+    @override_cache_settings(KEY_FUNCTION=custom_key_func)
+    def test_keys_with_prefix_with_bad_cache(self):
+        with self.assertRaises(ValueError) as cm:
+            cache.keys_with_prefix('')
+        self.assertTrue(
+            str(cm.exception).startswith("To use the _with_prefix commands")
+        )
 
     # mysql_cache_migration tests
 
